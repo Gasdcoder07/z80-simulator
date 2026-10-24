@@ -1,0 +1,11 @@
+[package]
+name = "z80-basic"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "BASIC compiler targeting Z80 assembly"
+
+[dependencies]
+serde = { workspace = true }
+thiserror = { workspace = true }

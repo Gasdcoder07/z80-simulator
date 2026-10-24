@@ -1,0 +1,32 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/z80-core",
+    "crates/z80-asm",
+    "crates/z80-system",
+    "crates/z80-basic",
+    "src-tauri",
+
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.77"
+license = "MIT"
+
+[workspace.dependencies]
+z80-core = { path = "crates/z80-core" }
+z80-asm = { path = "crates/z80-asm" }
+z80-system = { path = "crates/z80-system" }
+z80-basic = { path = "crates/z80-basic" }
+serde = { version = "1.0.217", features = ["derive"] }
+serde_json = "1.0.135"
+thiserror = "2.0.11"
+
+[profile.release]
+lto = true
+codegen-units = 1
+
+[profile.test]
+opt-level = 2

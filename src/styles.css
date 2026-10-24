@@ -1,0 +1,663 @@
+/* A dense, dark developer-tool theme. Everything is sized in a monospace
+   grid so that hex columns line up exactly. */
+
+:root {
+  --bg: #0f1115;
+  --bg-raised: #16181d;
+  --bg-sunken: #0b0c10;
+  --border: #272b33;
+  --text: #d6dae1;
+  --text-dim: #8a929e;
+  --accent: #4aa3ff;
+  --accent-dim: #1e3a5c;
+  --ok: #51cf66;
+  --warn: #ffd43b;
+  --error: #ff6b6b;
+  --read: #1f3a2e;
+  --write: #4a2a1a;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 13px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  overflow: hidden;
+}
+
+button,
+select,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+.app {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) minmax(160px, 22rem) auto;
+  height: 100%;
+}
+
+/* ---- toolbar ---------------------------------------------------------- */
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 0.4rem 0.75rem;
+  background: var(--bg-raised);
+  border-bottom: 1px solid var(--border);
+}
+
+.toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.toolbar-status {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--text-dim);
+}
+
+.toolbar-status .running {
+  color: var(--ok);
+}
+
+.stop-badge {
+  padding: 0.1rem 0.45rem;
+  border-radius: 3px;
+  background: var(--accent-dim);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+button {
+  padding: 0.25rem 0.6rem;
+  background: #222730;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  background: #2c323d;
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+button.primary {
+  background: var(--accent-dim);
+  border-color: #2d5a8c;
+}
+
+button.primary:hover:not(:disabled) {
+  background: #27486e;
+}
+
+select,
+input[type="number"] {
+  padding: 0.2rem 0.35rem;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--text-dim);
+}
+
+/* ---- layout ----------------------------------------------------------- */
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) 22rem minmax(0, 1fr);
+  min-height: 0;
+}
+
+.pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  border-right: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.memory-pane {
+  border-right: none;
+}
+
+.pane-title {
+  padding: 0.3rem 0.6rem;
+  background: var(--bg-raised);
+  border-bottom: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.debug-pane {
+  overflow-y: auto;
+}
+
+.editor-host {
+  flex: 1;
+  min-height: 0;
+}
+
+.panel-empty {
+  padding: 1rem;
+  color: var(--text-dim);
+}
+
+.panel-empty.ok {
+  color: var(--ok);
+}
+
+.panel-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.hint {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 11px;
+}
+
+.dim {
+  color: var(--text-dim);
+}
+
+/* ---- registers -------------------------------------------------------- */
+
+.registers {
+  padding: 0.5rem 0.6rem;
+}
+
+.register-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.register-row {
+  display: grid;
+  grid-template-columns: 2.5rem auto 2.5rem auto;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.register-label {
+  font-family: var(--mono);
+  color: var(--accent);
+}
+
+.register-label.dim {
+  color: var(--text-dim);
+}
+
+.register-static {
+  font-family: var(--mono);
+  color: var(--text-dim);
+  padding: 0.15rem 0.3rem;
+}
+
+.hex-field {
+  padding: 0.15rem 0.3rem;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-family: var(--mono);
+  text-transform: uppercase;
+}
+
+.hex-field:focus {
+  outline: 1px solid var(--accent);
+}
+
+.flags {
+  display: flex;
+  gap: 0.2rem;
+  margin: 0.6rem 0;
+}
+
+.flag {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.15rem 0.3rem;
+  min-width: 2.2rem;
+  font-family: var(--mono);
+  font-size: 10px;
+}
+
+.flag.on {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+}
+
+.flag-name {
+  color: var(--text-dim);
+}
+
+.flag.on .flag-name {
+  color: var(--text);
+}
+
+.flag-bit {
+  font-size: 12px;
+}
+
+.stats {
+  margin: 0.5rem 0 0;
+  display: grid;
+  gap: 0.15rem;
+  font-size: 11px;
+}
+
+.stats > div {
+  display: flex;
+  justify-content: space-between;
+}
+
+.stats dt {
+  color: var(--text-dim);
+}
+
+.stats dd {
+  margin: 0;
+  font-family: var(--mono);
+}
+
+/* ---- disassembly ------------------------------------------------------ */
+
+.disassembly,
+.listing,
+.trace-list {
+  overflow: auto;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.disassembly-line {
+  display: grid;
+  grid-template-columns: 1.1rem 3.4rem 7.5rem 1fr;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0 0.4rem;
+  white-space: nowrap;
+}
+
+.disassembly-line.current {
+  background: var(--accent-dim);
+}
+
+.breakpoint {
+  width: 0.7rem;
+  height: 0.7rem;
+  padding: 0;
+  border-radius: 50%;
+  background: transparent;
+  border: 1px solid var(--border);
+}
+
+.breakpoint.set {
+  background: var(--error);
+  border-color: var(--error);
+}
+
+.address {
+  color: var(--accent);
+}
+
+.bytes {
+  color: var(--text-dim);
+}
+
+.mnemonic {
+  color: var(--text);
+}
+
+/* ---- hex grids (memory and ports) ------------------------------------- */
+
+.memory-editor {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.memory-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.hex-grid {
+  overflow: auto;
+  padding: 0.3rem 0.6rem;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.hex-head,
+.hex-row {
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.hex-head {
+  color: var(--text-dim);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.15rem;
+  margin-bottom: 0.15rem;
+}
+
+.hex-address {
+  width: 3.2rem;
+  color: var(--accent);
+  flex: none;
+}
+
+.hex-col,
+.hex-cell {
+  width: 1.6rem;
+  text-align: center;
+  flex: none;
+}
+
+.hex-cell {
+  cursor: text;
+  border-radius: 2px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid transparent;
+}
+
+.hex-cell:hover {
+  background: #22262e;
+}
+
+.hex-cell.read {
+  background: var(--read);
+}
+
+.hex-cell.written {
+  background: var(--write);
+}
+
+.hex-cell.at-pc {
+  outline: 1px solid var(--accent);
+}
+
+.hex-cell.at-sp {
+  outline: 1px solid var(--warn);
+}
+
+.hex-cell.editing {
+  background: var(--bg-sunken);
+  border-color: var(--accent);
+  text-transform: uppercase;
+}
+
+.hex-text {
+  margin-left: 0.6rem;
+  color: var(--text-dim);
+  white-space: pre;
+}
+
+.ports {
+  padding: 0.5rem 0;
+}
+
+/* ---- bottom panels ---------------------------------------------------- */
+
+.bottom-pane {
+  border-top: 1px solid var(--border);
+  border-right: none;
+}
+
+.tab-bar {
+  display: flex;
+  background: var(--bg-raised);
+  border-bottom: 1px solid var(--border);
+}
+
+.tab {
+  padding: 0.35rem 0.8rem;
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--border);
+  border-radius: 0;
+  color: var(--text-dim);
+}
+
+.tab.active {
+  background: var(--bg);
+  color: var(--text);
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+
+.badge {
+  margin-left: 0.4rem;
+  padding: 0 0.3rem;
+  border-radius: 8px;
+  background: var(--error);
+  color: #140707;
+  font-size: 10px;
+}
+
+.bottom-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.listing-line {
+  display: grid;
+  grid-template-columns: 3.4rem 8rem 1fr;
+  gap: 0.5rem;
+  padding: 0 0.6rem;
+  white-space: pre;
+}
+
+.listing-line .source {
+  color: var(--text);
+}
+
+.problems {
+  display: flex;
+  flex-direction: column;
+}
+
+.problem {
+  display: grid;
+  grid-template-columns: 14rem 1fr;
+  gap: 0.6rem;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  padding: 0.3rem 0.6rem;
+}
+
+.problem:hover {
+  background: var(--bg-raised);
+}
+
+.problem-where {
+  font-family: var(--mono);
+  color: var(--error);
+}
+
+.symbols,
+.trace-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.symbol-row,
+.trace-row {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.1rem 0.6rem;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.symbol-row {
+  grid-template-columns: 1fr 5rem 4rem 4rem;
+}
+
+.trace-row {
+  grid-template-columns: 5rem 1fr 7rem 8rem;
+}
+
+.symbol-row.head,
+.trace-row.head {
+  color: var(--text-dim);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+}
+
+.symbol-row:not(.head):hover {
+  background: var(--bg-raised);
+  cursor: pointer;
+}
+
+.symbol-name {
+  color: var(--ok);
+}
+
+.flags-text {
+  color: var(--warn);
+  letter-spacing: 0.08em;
+}
+
+/* ---- options ---------------------------------------------------------- */
+
+.options {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  max-width: 48rem;
+}
+
+.checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  color: var(--text);
+}
+
+.checkbox small,
+.field small {
+  display: block;
+  color: var(--text-dim);
+  font-size: 11px;
+}
+
+.field {
+  display: grid;
+  grid-template-columns: 14rem auto;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.field small {
+  grid-column: 1 / -1;
+}
+
+.interrupts {
+  padding-bottom: 0.4rem;
+}
+
+/* ---- status bar ------------------------------------------------------- */
+
+.status-bar {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.25rem 0.75rem;
+  background: var(--bg-raised);
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+/* ---- modal ------------------------------------------------------------ */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.modal {
+  min-width: 22rem;
+  padding: 1rem 1.1rem;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 1rem 2.5rem rgba(0, 0, 0, 0.5);
+}
+
+.modal h2 {
+  margin: 0 0 0.4rem;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.modal code {
+  font-family: var(--mono);
+  color: var(--text);
+}
+
+.modal-field {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.9rem 0;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
