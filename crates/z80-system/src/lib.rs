@@ -8,7 +8,7 @@ pub mod rate;
 pub mod trace;
 
 pub use io::{Device, PortEvent, PortSpace};
-pub use machine::{Machine, Options, Statistics, StepOutcome, StopReason};
+pub use machine::{LastExecuted, Machine, Options, Statistics, StepOutcome, StopReason};
 pub use memory::Memory;
 pub use rate::Rate;
 pub use trace::{Trace, TraceEntry};

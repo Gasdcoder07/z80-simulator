@@ -13,15 +13,21 @@ export interface Registers {
   b: number; c: number;
   d: number; e: number;
   h: number; l: number;
-  a_alt: number; f_alt: number;
-  b_alt: number; c_alt: number;
-  d_alt: number; e_alt: number;
-  h_alt: number; l_alt: number;
+  aAlt: number; fAlt: number;
+  bAlt: number; cAlt: number;
+  dAlt: number; eAlt: number;
+  hAlt: number; lAlt: number;
   ix: number; iy: number;
   sp: number; pc: number;
   i: number; r: number;
   wz: number;
 }
+
+/** One addressable slot in the register file, as the CPU view edits them. */
+export type RegisterId =
+  | "a" | "f" | "b" | "c" | "d" | "e" | "h" | "l"
+  | "aAlt" | "fAlt" | "bAlt" | "cAlt" | "dAlt" | "eAlt" | "hAlt" | "lAlt"
+  | "ix" | "iy" | "sp" | "pc" | "i" | "r" | "wz";
 
 export interface Statistics {
   instructions: number;
@@ -65,6 +71,15 @@ export interface TraceLine {
   tstates: number;
 }
 
+/** The instruction the CPU has just finished. */
+export interface ExecutedInstruction {
+  address: number;
+  bytes: number[];
+  text: string;
+  tstates: number;
+  interruptTaken: boolean;
+}
+
 export interface Snapshot {
   running: boolean;
   rate: Rate;
@@ -78,6 +93,7 @@ export interface Snapshot {
   simulatedSeconds: number;
   stopReason: StopReason | null;
   disassembly: DisassemblyLine[];
+  lastInstruction: ExecutedInstruction | null;
   memoryWindows: MemoryWindow[];
   ports: number[];
   portAccess: number[];
@@ -134,6 +150,8 @@ export type SimCommand =
   | { type: "setRate"; rate: Rate }
   | { type: "setOptions"; options: Options }
   | { type: "setRegisters"; registers: Registers }
+  | { type: "setRegister"; register: RegisterId; value: number }
+  | { type: "setInterruptState"; iff1?: boolean; iff2?: boolean; mode?: number }
   | { type: "setBreakpoints"; addresses: number[] }
   | { type: "toggleBreakpoint"; address: number }
   | { type: "clearMemory" }

@@ -39,4 +39,4 @@ pub mod registers;
 
 pub use bus::Bus;
 pub use cpu::{Cpu, Index, InterruptMode, StepResult};
-pub use registers::Registers;
+pub use registers::{RegisterId, Registers};

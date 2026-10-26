@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 /// flags 3 and 5, so an accurate core has to maintain it.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct Registers {
     pub a: u8,
     pub f: u8,
@@ -174,5 +175,176 @@ impl Registers {
     #[inline]
     pub fn bump_r(&mut self) {
         self.r = (self.r & 0x80) | (self.r.wrapping_add(1) & 0x7F);
+    }
+}
+
+/// One addressable slot in the register file, as the CPU view edits them.
+///
+/// The debugger writes registers one at a time: sending the whole file back
+/// would overwrite whatever the CPU changed since the snapshot the window is
+/// looking at.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
+pub enum RegisterId {
+    A,
+    F,
+    B,
+    C,
+    D,
+    E,
+    H,
+    L,
+    AAlt,
+    FAlt,
+    BAlt,
+    CAlt,
+    DAlt,
+    EAlt,
+    HAlt,
+    LAlt,
+    Ix,
+    Iy,
+    Sp,
+    Pc,
+    I,
+    R,
+    Wz,
+}
+
+impl RegisterId {
+    /// True for the slots that hold a word; the rest are a single byte.
+    #[inline]
+    pub fn is_wide(self) -> bool {
+        matches!(
+            self,
+            RegisterId::Ix | RegisterId::Iy | RegisterId::Sp | RegisterId::Pc | RegisterId::Wz
+        )
+    }
+
+    /// Every slot, in the order the register view lays them out.
+    pub const ALL: [RegisterId; 23] = [
+        RegisterId::A,
+        RegisterId::F,
+        RegisterId::B,
+        RegisterId::C,
+        RegisterId::D,
+        RegisterId::E,
+        RegisterId::H,
+        RegisterId::L,
+        RegisterId::AAlt,
+        RegisterId::FAlt,
+        RegisterId::BAlt,
+        RegisterId::CAlt,
+        RegisterId::DAlt,
+        RegisterId::EAlt,
+        RegisterId::HAlt,
+        RegisterId::LAlt,
+        RegisterId::Ix,
+        RegisterId::Iy,
+        RegisterId::Sp,
+        RegisterId::Pc,
+        RegisterId::I,
+        RegisterId::R,
+        RegisterId::Wz,
+    ];
+}
+
+impl Registers {
+    /// Read one slot. Byte slots widen into the low half.
+    pub fn get(&self, id: RegisterId) -> u16 {
+        use RegisterId::*;
+        match id {
+            A => self.a as u16,
+            F => self.f as u16,
+            B => self.b as u16,
+            C => self.c as u16,
+            D => self.d as u16,
+            E => self.e as u16,
+            H => self.h as u16,
+            L => self.l as u16,
+            AAlt => self.a_alt as u16,
+            FAlt => self.f_alt as u16,
+            BAlt => self.b_alt as u16,
+            CAlt => self.c_alt as u16,
+            DAlt => self.d_alt as u16,
+            EAlt => self.e_alt as u16,
+            HAlt => self.h_alt as u16,
+            LAlt => self.l_alt as u16,
+            Ix => self.ix,
+            Iy => self.iy,
+            Sp => self.sp,
+            Pc => self.pc,
+            I => self.i as u16,
+            R => self.r as u16,
+            Wz => self.wz,
+        }
+    }
+
+    /// Write one slot. Byte slots take the low half of `value`.
+    pub fn set(&mut self, id: RegisterId, value: u16) {
+        use RegisterId::*;
+        let byte = value as u8;
+        match id {
+            A => self.a = byte,
+            F => self.f = byte,
+            B => self.b = byte,
+            C => self.c = byte,
+            D => self.d = byte,
+            E => self.e = byte,
+            H => self.h = byte,
+            L => self.l = byte,
+            AAlt => self.a_alt = byte,
+            FAlt => self.f_alt = byte,
+            BAlt => self.b_alt = byte,
+            CAlt => self.c_alt = byte,
+            DAlt => self.d_alt = byte,
+            EAlt => self.e_alt = byte,
+            HAlt => self.h_alt = byte,
+            LAlt => self.l_alt = byte,
+            Ix => self.ix = value,
+            Iy => self.iy = value,
+            Sp => self.sp = value,
+            Pc => self.pc = value,
+            I => self.i = byte,
+            R => self.r = byte,
+            Wz => self.wz = value,
+        }
+    }
+}
+
+#[cfg(test)]
+mod register_id_tests {
+    use super::*;
+
+    #[test]
+    fn byte_slots_keep_only_the_low_half() {
+        let mut regs = Registers::default();
+        regs.set(RegisterId::AAlt, 0x1234);
+        assert_eq!(regs.a_alt, 0x34);
+        assert_eq!(regs.get(RegisterId::AAlt), 0x34);
+    }
+
+    #[test]
+    fn wide_slots_keep_the_whole_word() {
+        let mut regs = Registers::default();
+        regs.set(RegisterId::Ix, 0x1234);
+        assert_eq!(regs.ix, 0x1234);
+        assert_eq!(regs.get(RegisterId::Ix), 0x1234);
+    }
+
+    #[test]
+    fn every_slot_round_trips_and_touches_nothing_else() {
+        for (index, id) in RegisterId::ALL.into_iter().enumerate() {
+            let mut regs = Registers::default();
+            let value = if id.is_wide() { 0xBE00 | index as u16 } else { 0x40 + index as u16 };
+
+            regs.set(id, value);
+            assert_eq!(regs.get(id), value, "{id:?} did not round trip");
+
+            let mut cleared = regs;
+            cleared.set(id, 0);
+            assert_eq!(cleared, Registers::default(), "{id:?} spilled into another slot");
+        }
     }
 }

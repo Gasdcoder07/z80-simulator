@@ -6,6 +6,7 @@ import type {
   AssemblyResult,
   Options,
   Rate,
+  RegisterId,
   Registers,
   SimCommand,
   Snapshot,
@@ -60,6 +61,12 @@ interface SimState {
   setRate: (rate: Rate) => Promise<void>;
   setOptions: (options: Options) => Promise<void>;
   setRegisters: (registers: Registers) => Promise<void>;
+  setRegister: (register: RegisterId, value: number) => Promise<void>;
+  setInterruptState: (patch: {
+    iff1?: boolean;
+    iff2?: boolean;
+    mode?: number;
+  }) => Promise<void>;
   toggleBreakpoint: (address: number) => Promise<void>;
   setMemoryPane: (index: number, pane: Partial<MemoryPane>) => Promise<void>;
   setTracing: (enabled: boolean) => Promise<void>;
@@ -160,6 +167,14 @@ export const useSim = create<SimState>((set, get) => ({
 
   async setRegisters(registers) {
     await get().send({ type: "setRegisters", registers });
+  },
+
+  async setRegister(register, value) {
+    await get().send({ type: "setRegister", register, value });
+  },
+
+  async setInterruptState(patch) {
+    await get().send({ type: "setInterruptState", ...patch });
   },
 
   async toggleBreakpoint(address) {

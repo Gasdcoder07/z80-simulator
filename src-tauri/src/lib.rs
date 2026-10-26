@@ -2,6 +2,7 @@
 //! hardware, in one window.
 
 mod commands;
+mod menu;
 mod sim;
 
 use tauri::Manager;
@@ -20,13 +21,18 @@ pub fn run() {
             // to the window without being asked.
             let handle = sim::spawn(app.handle().clone());
             app.manage(handle);
+
+            app.set_menu(menu::build(app.handle())?)?;
             Ok(())
         })
+        .on_menu_event(|app, event| menu::dispatch(app, event.id().as_ref()))
         .invoke_handler(tauri::generate_handler![
             commands::assemble_source,
             commands::sim_command,
             commands::sim_snapshot,
             commands::load_image,
+            commands::sync_menu,
+            commands::save_memory,
         ])
         .run(tauri::generate_context!())
         .expect("the application failed to start");

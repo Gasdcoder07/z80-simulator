@@ -11,7 +11,7 @@ use std::time::{Duration, Instant};
 
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter};
-use z80_core::Registers;
+use z80_core::{InterruptMode, RegisterId, Registers};
 use z80_system::machine::{Options, StopReason};
 use z80_system::{Machine, Rate, Statistics};
 
@@ -34,6 +34,20 @@ pub enum Command {
     SetRate { rate: Rate },
     SetOptions { options: Options },
     SetRegisters { registers: Registers },
+    /// Patch a single register. The CPU view edits one field at a time, and
+    /// echoing the whole file back would undo whatever the CPU changed since
+    /// the snapshot the window is looking at.
+    SetRegister { register: RegisterId, value: u16 },
+    /// Edit the interrupt state, which lives on the CPU rather than in the
+    /// register file. Fields left out keep their current value.
+    SetInterruptState {
+        #[serde(default)]
+        iff1: Option<bool>,
+        #[serde(default)]
+        iff2: Option<bool>,
+        #[serde(default)]
+        mode: Option<u8>,
+    },
     SetBreakpoints { addresses: Vec<u16> },
     ToggleBreakpoint { address: u16 },
     ClearMemory,
@@ -47,6 +61,11 @@ pub enum Command {
     ClearTrace,
     SetView { view: ViewConfig },
     SetUltimateRefreshMillis { millis: u64 },
+    /// Read a range of memory back out as Intel HEX. Built in Rust only —
+    /// the reply channel cannot cross the serde boundary — and used by the
+    /// File menu's "Save Memory".
+    #[serde(skip)]
+    DumpIntelHex { from: u16, to: u16, reply: Sender<String> },
 }
 
 /// Which slices of machine state the window currently wants to see. Keeping
@@ -92,6 +111,23 @@ pub struct MemoryWindow {
     pub access: Vec<u8>,
 }
 
+/// The instruction the CPU has just finished, for the debugger's "last
+/// instruction" display.
+///
+/// The mnemonic is decoded here, once per frame, from the address the machine
+/// recorded. Self-modifying code therefore shows the bytes as they are now
+/// rather than as they were executed, which is the same trade the disassembly
+/// pane already makes.
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExecutedInstruction {
+    pub address: u16,
+    pub bytes: Vec<u8>,
+    pub text: String,
+    pub tstates: u32,
+    pub interrupt_taken: bool,
+}
+
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TraceLine {
@@ -118,6 +154,8 @@ pub struct Snapshot {
     pub simulated_seconds: f64,
     pub stop_reason: Option<StopReason>,
     pub disassembly: Vec<DisassemblyLine>,
+    /// The instruction that ran most recently, or `None` before anything has.
+    pub last_instruction: Option<ExecutedInstruction>,
     pub memory_windows: Vec<MemoryWindow>,
     pub ports: Vec<u8>,
     pub port_access: Vec<u8>,
@@ -278,6 +316,20 @@ fn apply(state: &mut State, command: Command) {
         }
         Command::SetOptions { options } => state.machine.apply_options(options),
         Command::SetRegisters { registers } => *state.machine.registers_mut() = registers,
+        Command::SetRegister { register, value } => {
+            state.machine.registers_mut().set(register, value);
+        }
+        Command::SetInterruptState { iff1, iff2, mode } => {
+            if let Some(value) = iff1 {
+                state.machine.cpu.iff1 = value;
+            }
+            if let Some(value) = iff2 {
+                state.machine.cpu.iff2 = value;
+            }
+            if let Some(code) = mode {
+                state.machine.cpu.interrupt_mode = InterruptMode::from_code(code);
+            }
+        }
         Command::SetBreakpoints { addresses } => {
             state.machine.breakpoints = addresses.into_iter().collect();
         }
@@ -319,6 +371,9 @@ fn apply(state: &mut State, command: Command) {
         Command::SetTracing { enabled } => state.machine.trace.enabled = enabled,
         Command::ClearTrace => state.machine.trace.clear(),
         Command::SetView { view } => state.view = view,
+        Command::DumpIntelHex { from, to, reply } => {
+            let _ = reply.send(state.machine.save_intel_hex(from, to));
+        }
         Command::SetUltimateRefreshMillis { millis } => {
             state.ultimate_interval = Duration::from_millis(millis.max(1));
         }
@@ -357,6 +412,17 @@ fn build(state: &State) -> Snapshot {
         })
         .collect();
 
+    let last_instruction = machine.last_executed.map(|last| {
+        let instruction = machine.disassemble_at(last.address);
+        ExecutedInstruction {
+            address: last.address,
+            bytes: instruction.bytes,
+            text: instruction.text,
+            tstates: last.tstates,
+            interrupt_taken: last.interrupt_taken,
+        }
+    });
+
     let memory_windows = state
         .view
         .memory_windows
@@ -393,6 +459,7 @@ fn build(state: &State) -> Snapshot {
         simulated_seconds: machine.stats.simulated_seconds(machine.options.clock_hz),
         stop_reason: state.stop_reason,
         disassembly,
+        last_instruction,
         memory_windows,
         ports: machine.ports.values().to_vec(),
         port_access: machine.ports.access_flags().to_vec(),
@@ -461,5 +528,56 @@ mod tests {
 
         assert!(!state.running);
         assert_eq!(state.machine.ports.input_queue.len(), 1);
+    }
+
+    #[test]
+    fn a_single_register_is_patched_without_disturbing_the_rest() {
+        let mut state = State::default();
+        state.machine.cpu.regs.b = 0x11;
+
+        apply(&mut state, Command::SetRegister { register: RegisterId::A, value: 0x3F });
+
+        assert_eq!(state.machine.cpu.regs.a, 0x3F);
+        assert_eq!(state.machine.cpu.regs.b, 0x11, "the patch spilled into another register");
+    }
+
+    #[test]
+    fn a_byte_register_takes_only_the_low_half_of_a_wide_value() {
+        let mut state = State::default();
+
+        apply(&mut state, Command::SetRegister { register: RegisterId::FAlt, value: 0x1234 });
+
+        assert_eq!(state.machine.cpu.regs.f_alt, 0x34);
+    }
+
+    #[test]
+    fn the_interrupt_state_patches_only_the_fields_it_names() {
+        let mut state = State::default();
+        state.machine.cpu.iff2 = true;
+
+        apply(
+            &mut state,
+            Command::SetInterruptState { iff1: Some(true), iff2: None, mode: Some(2) },
+        );
+
+        assert!(state.machine.cpu.iff1);
+        assert!(state.machine.cpu.iff2, "iff2 was left out and should not have moved");
+        assert_eq!(state.machine.cpu.interrupt_mode, InterruptMode::Mode2);
+    }
+
+    #[test]
+    fn the_snapshot_reports_the_instruction_that_just_ran() {
+        let mut state = State::default();
+        assert!(build(&state).last_instruction.is_none(), "nothing has run yet");
+
+        // 3E 05: LD A,05h.
+        apply(&mut state, Command::WriteMemory { address: 0, bytes: vec![0x3E, 0x05] });
+        apply(&mut state, Command::Step);
+
+        let last = build(&state).last_instruction.expect("one instruction has run");
+        assert_eq!(last.address, 0x0000);
+        assert_eq!(last.text, "LD A,05h");
+        assert_eq!(last.tstates, 7);
+        assert!(!last.interrupt_taken);
     }
 }

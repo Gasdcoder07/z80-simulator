@@ -131,3 +131,27 @@ fn memory_access_tracking_follows_reads_and_writes() {
     machine.memory.clear_access();
     assert_eq!(machine.memory.access_flags(0x2000), 0);
 }
+
+#[test]
+fn the_last_executed_instruction_is_recorded_for_the_debugger() {
+    use z80_system::machine::LastExecuted;
+
+    let mut machine = machine_with("    ORG 100h\n    LD A,5\n    INC A\n    HALT\n");
+    assert_eq!(machine.last_executed, None, "nothing has run yet");
+
+    machine.step();
+    assert_eq!(
+        machine.last_executed,
+        Some(LastExecuted { address: 0x0100, tstates: 7, interrupt_taken: false })
+    );
+    assert_eq!(machine.disassemble_at(0x0100).text, "LD A,05h");
+
+    machine.step();
+    assert_eq!(
+        machine.last_executed,
+        Some(LastExecuted { address: 0x0102, tstates: 4, interrupt_taken: false })
+    );
+
+    machine.reset();
+    assert_eq!(machine.last_executed, None, "reset returns the machine to power-on");
+}

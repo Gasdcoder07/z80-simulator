@@ -9,6 +9,9 @@ use z80_asm::assemble::ListingLine;
 use z80_asm::listing::{self, ListingOptions};
 use z80_asm::{assemble, FileLoader};
 
+use z80_system::machine::Options;
+use z80_system::Rate;
+
 use crate::sim::{Command, SimHandle, Snapshot};
 
 /// One assembled line, flattened for the listing view.
@@ -178,4 +181,27 @@ pub fn load_image(
         })?;
         Ok(format!("Loaded {length} bytes into {offset:04X}h-{high:04X}h"))
     }
+}
+
+/// Point the menu's check marks at the simulation's current state. The window
+/// calls this when the options or the rate change, whichever control changed
+/// them.
+#[tauri::command]
+pub fn sync_menu(app: tauri::AppHandle, options: Options, rate: Rate) {
+    crate::menu::sync(&app, &options, rate);
+}
+
+/// Read a range of memory back out as Intel HEX: the File menu's
+/// "Save Memory". The simulation thread owns the memory, so the answer comes
+/// back over a one-shot channel.
+#[tauri::command]
+pub fn save_memory(sim: State<'_, SimHandle>, from: u16, to: u16) -> Result<String, String> {
+    if from > to {
+        return Err("the start address is above the end address".into());
+    }
+    let (reply, answer) = std::sync::mpsc::channel();
+    sim.send(Command::DumpIntelHex { from, to, reply })?;
+    answer
+        .recv_timeout(std::time::Duration::from_secs(5))
+        .map_err(|_| "the simulation thread did not answer".to_string())
 }

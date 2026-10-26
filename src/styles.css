@@ -45,7 +45,7 @@ input {
 
 .app {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) minmax(160px, 22rem) auto;
+  grid-template-rows: auto minmax(0, 1fr) minmax(160px, 16rem) auto;
   height: 100%;
 }
 
@@ -132,7 +132,7 @@ label {
 
 .workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) 22rem minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.1fr) 4px var(--debug-width, 35rem) minmax(0, 1fr);
   min-height: 0;
 }
 
@@ -195,38 +195,197 @@ label {
   color: var(--text-dim);
 }
 
-/* ---- registers -------------------------------------------------------- */
+/* ---- CPU panel -------------------------------------------------------- */
 
-.registers {
-  padding: 0.5rem 0.6rem;
+.cpu-panel {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.4rem 0.5rem;
 }
 
-.register-grid {
+.cpu-location {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.cpu-location label {
+  color: var(--text-dim);
+  font-size: 11px;
+}
+
+.cpu-location input {
+  width: 100%;
+  text-transform: none;
+}
+
+/* Registers and their alternates across the top, the two flag columns
+   underneath them, and the instruction and interrupt stack down the side. */
+.cpu-body {
+  display: grid;
+  grid-template-columns: auto auto minmax(13rem, 1fr);
+  grid-template-areas:
+    "main  alt  right"
+    "mainf altf right";
+  align-items: start;
+  gap: 0.4rem;
+}
+
+.cpu-main {
+  grid-area: main;
+}
+
+.cpu-alt {
+  grid-area: alt;
+}
+
+.cpu-mainf {
+  grid-area: mainf;
+}
+
+.cpu-altf {
+  grid-area: altf;
+}
+
+.cpu-right {
+  grid-area: right;
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
-}
-
-.register-row {
-  display: grid;
-  grid-template-columns: 2.5rem auto 2.5rem auto;
-  align-items: center;
   gap: 0.35rem;
 }
 
-.register-label {
-  font-family: var(--mono);
+.cpu-group {
+  padding: 0.3rem 0.4rem;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.cpu-group-title {
+  margin-bottom: 0.25rem;
+  color: var(--text-dim);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.cpu-rows {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.cpu-reg-row {
+  display: grid;
+  grid-template-columns: 1.9rem auto;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.cpu-reg-button {
+  width: 1.9rem;
+  height: 1.4rem;
+  padding: 0;
   color: var(--accent);
-}
-
-.register-label.dim {
-  color: var(--text-dim);
-}
-
-.register-static {
   font-family: var(--mono);
+  line-height: 1;
+}
+
+.cpu-flag-row {
+  display: grid;
+  grid-template-columns: 0.8rem 2rem auto;
+  align-items: center;
+  gap: 0.25rem;
+  font-family: var(--mono);
+  font-size: 10px;
+}
+
+.cpu-flag-row .hex-field {
+  padding: 0.05rem 0.15rem;
+  text-align: center;
+}
+
+.cpu-flag-bit {
   color: var(--text-dim);
+}
+
+/* Bits 5 and 3 are the undocumented ones, red in the original. */
+.cpu-flag-name.undocumented {
+  color: var(--error);
+}
+
+.cpu-mnemonic {
+  padding: 0.2rem 0.3rem;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-family: var(--mono);
+  font-size: 13px;
+  text-align: center;
+}
+
+.cpu-next {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.25rem;
+}
+
+.cpu-next > span {
+  color: var(--text-dim);
+  font-size: 11px;
+}
+
+.cpu-counter {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--text-dim);
+  font-size: 11px;
+}
+
+.cpu-counter + .cpu-counter {
+  margin-top: 0.2rem;
+}
+
+.cpu-counter output {
   padding: 0.15rem 0.3rem;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--text);
+  font-family: var(--mono);
+}
+
+.cpu-wide {
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  justify-content: start;
+  gap: 0.15rem 0.6rem;
+}
+
+.cpu-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cpu-inline-field {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+.cpu-int-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.35rem;
 }
 
 .hex-field {
@@ -242,58 +401,75 @@ label {
   outline: 1px solid var(--accent);
 }
 
-.flags {
-  display: flex;
-  gap: 0.2rem;
-  margin: 0.6rem 0;
+.hex-field[readonly] {
+  border-color: transparent;
+  color: var(--text-dim);
 }
 
-.flag {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 0.15rem 0.3rem;
-  min-width: 2.2rem;
+/* ---- the per-register editor ------------------------------------------ */
+
+.cpu-popover {
+  position: fixed;
+  z-index: 20;
+  min-width: 13rem;
+  padding: 0.6rem;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.5);
+}
+
+.cpu-popover-title {
+  margin-bottom: 0.4rem;
+  color: var(--accent);
   font-family: var(--mono);
-  font-size: 10px;
 }
 
-.flag.on {
+.cpu-popover-row {
+  display: grid;
+  grid-template-columns: 2.2rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.3rem;
+  margin-bottom: 0.25rem;
+  color: var(--text-dim);
+  font-size: 11px;
+}
+
+.cpu-popover-row .hex-field {
+  width: 100%;
+}
+
+.cpu-popover-bits {
+  display: flex;
+  gap: 0.15rem;
+  margin: 0.4rem 0;
+}
+
+.cpu-bit {
+  flex: 1;
+  padding: 0.15rem 0;
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+.cpu-bit.on {
   background: var(--accent-dim);
   border-color: var(--accent);
 }
 
-.flag-name {
-  color: var(--text-dim);
-}
-
-.flag.on .flag-name {
-  color: var(--text);
-}
-
-.flag-bit {
-  font-size: 12px;
-}
-
-.stats {
-  margin: 0.5rem 0 0;
-  display: grid;
-  gap: 0.15rem;
-  font-size: 11px;
-}
-
-.stats > div {
+.cpu-popover-actions {
   display: flex;
-  justify-content: space-between;
+  gap: 0.3rem;
 }
 
-.stats dt {
-  color: var(--text-dim);
+.splitter {
+  background: var(--border);
+  cursor: col-resize;
 }
 
-.stats dd {
-  margin: 0;
-  font-family: var(--mono);
+.splitter:hover,
+.splitter.dragging {
+  background: var(--accent);
 }
 
 /* ---- disassembly ------------------------------------------------------ */
@@ -654,6 +830,24 @@ label {
   align-items: center;
   gap: 0.5rem;
   margin: 0.9rem 0;
+}
+
+.modal-row {
+  display: flex;
+  gap: 1rem;
+  margin: 0.9rem 0;
+}
+
+.modal-row label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--text-dim);
+  font-size: 11px;
+}
+
+.hint.error {
+  color: var(--error);
 }
 
 .modal-actions {

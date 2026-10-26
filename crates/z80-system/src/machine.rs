@@ -41,7 +41,7 @@ impl Default for Options {
             halt_stops_simulation: true,
             ff_power_on_defaults: false,
             enable_unofficial: true,
-            prompt_before_in: false,
+            prompt_before_in: true,
             clock_hz: 4_000_000,
             start_address: 0x0000,
             obj_load_offset: 0x0000,
@@ -80,6 +80,20 @@ pub enum StopReason {
     AwaitingInput,
 }
 
+/// Where the instruction the CPU has just finished was, and what it cost.
+///
+/// Only the address is kept. Disassembling inside the free-running loop would
+/// cost more than the simulation itself, so the debugger decodes it once per
+/// frame instead.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct LastExecuted {
+    pub address: u16,
+    pub tstates: u32,
+    /// The step accepted an interrupt instead of running the opcode at
+    /// `address`, so a mnemonic would be misleading.
+    pub interrupt_taken: bool,
+}
+
 /// The result of advancing the machine by one instruction.
 #[derive(Clone, Copy, Debug)]
 pub struct StepOutcome {
@@ -98,6 +112,9 @@ pub struct Machine {
     /// An interrupt raised from the user interface, with the byte the
     /// "device" places on the bus. Cleared once accepted.
     manual_interrupt: Option<u8>,
+    /// The instruction the CPU finished most recently, for the debugger's
+    /// "last instruction" display. `None` until something has run.
+    pub last_executed: Option<LastExecuted>,
 }
 
 impl Default for Machine {
@@ -121,6 +138,7 @@ impl Machine {
             options,
             stats: Statistics::default(),
             manual_interrupt: None,
+            last_executed: None,
         }
     }
 
@@ -131,6 +149,7 @@ impl Machine {
         self.cpu.regs.pc = self.options.start_address;
         self.stats = Statistics::default();
         self.manual_interrupt = None;
+        self.last_executed = None;
         self.memory.clear_access();
         self.ports.clear_access();
         self.trace.clear();
@@ -248,6 +267,7 @@ impl Machine {
         } else {
             None
         };
+        let executed_at = self.cpu.regs.pc;
 
         let result = {
             let mut bus = SystemBus {
@@ -261,6 +281,12 @@ impl Machine {
         if result.interrupt_taken {
             self.manual_interrupt = None;
         }
+
+        self.last_executed = Some(LastExecuted {
+            address: executed_at,
+            tstates: result.tstates,
+            interrupt_taken: result.interrupt_taken,
+        });
 
         self.stats.instructions += 1;
         self.stats.tstates += result.tstates as u64;
