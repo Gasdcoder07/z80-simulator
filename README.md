@@ -4,6 +4,11 @@ A Z80 assembler, disassembler, debugger and hardware simulator in one native
 macOS application: the workflow of Oshonsoft's Windows-only *Z80 Simulator
 IDE*, with its source and object file formats, on a Mac.
 
+The CPU, assembler and simulated machine are Rust; the window is React and
+TypeScript over Monaco, wrapped in Tauri 2. The simulation runs on a thread of
+its own and pushes state snapshots to the window, so the interface stays
+responsive at every speed.
+
 ## Layout
 
 | Path | What it is |
@@ -14,20 +19,38 @@ IDE*, with its source and object file formats, on a Mac.
 | `crates/z80-basic` | BASIC compiler. Not written yet. |
 | `src-tauri` | The macOS application: the simulation thread and the commands the window calls. |
 | `src` | The window itself: React, TypeScript and Monaco. |
+| `tests/conformance` | The ZEXDOC and ZEXALL binaries the CPU is tested against. |
 
-The simulation runs on a thread of its own and pushes state snapshots to the
-window, so the interface stays responsive at every speed.
+## Requirements
 
-## Running it
+- macOS, with the Xcode command line tools
+- Rust 1.77 or newer
+- Node 18 or newer
+
+## Building and running
 
 ```sh
 npm install
 npm run tauri dev          # development, with hot reload
-npm run tauri build        # a signed .app and .dmg in src-tauri/target/release/bundle
+npm run tauri build        # a .app and .dmg in src-tauri/target/release/bundle
 ```
 
-Inside the window: **F9** assembles and loads, **F5** runs, **F6** stops and
-**F2** steps.
+`npm run build` type-checks the front end and builds it without Tauri;
+`cargo build` builds the Rust workspace on its own.
+
+## Using it
+
+**F9** assembles the source and loads it into memory, **F1** starts the
+simulation, **F2** steps one instruction and **F3** stops. `Cmd-O` loads a
+program, `Cmd-Shift-O` opens a source file and `Cmd-S` saves it.
+
+The **Simulation ▸ Rate** menu runs the machine step by step, slow, normal,
+fast, extremely fast, or as fast as the host will go. **Tools** opens the three
+memory editors, the disassembler, the I/O port editor, the breakpoints manager
+and the execution log. **Options** holds the clock frequency, the starting
+address, the OBJ load offset, the power-on fill byte, whether `HALT` stops the
+simulation, whether unofficial instructions are allowed, and whether an `IN`
+instruction prompts for its value.
 
 ## Accuracy
 
@@ -65,6 +88,11 @@ assembles here unchanged.
   low word, and `$` or `PC` for the current address.
 - **Macros** are not supported, matching the original.
 
+## File formats
+
+Intel HEX (`.hex`), raw binary (`.obj`, loaded at the configured offset),
+assembler source (`.asm`) and the listing the assembler writes beside it.
+
 ## State of the work
 
 Done: the CPU, the assembler and disassembler, the file formats, the simulated
@@ -73,5 +101,8 @@ with read/write tracking, breakpoints, the disassembly view, the I/O port
 editor, the execution trace, the interrupt interface and the options).
 
 Still to come: the peripheral devices and terminals, the BASIC compiler, the
-ZX Spectrum ROM interface and the external module protocol. See
-`~/.claude/plans/necesito-poder-tener-una-fancy-hollerith.md` for the plan.
+ZX Spectrum ROM interface and the external module protocol.
+
+## License
+
+MIT.

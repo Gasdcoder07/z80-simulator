@@ -1,14 +1,104 @@
+# ---------------------------------------------------------------------------
+# Only source code and documentation belong in this repository.
+# ---------------------------------------------------------------------------
+
 # Rust
 /target
+/src-tauri/target
 **/*.rs.bk
 
 # Node
-node_modules
+node_modules/
 /dist
 
 # Tauri generated
-/src-tauri/target
 /src-tauri/gen
+
+# Build output
+*.app
+*.dmg
+*.pkg
 
 # macOS
 .DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment and secrets
+.env
+.env.*
+*.pem
+*.p12
+*.mobileprovision
+
+# ---------------------------------------------------------------------------
+# AI assistants: no agent configuration, memory, plans, logs or transcripts.
+# ---------------------------------------------------------------------------
+
+# Claude / Claude Code
+.claude/
+.claude-*/
+CLAUDE.md
+CLAUDE.local.md
+claude.md
+.mcp.json
+.claudeignore
+
+# Cursor
+.cursor/
+.cursorrules
+.cursorignore
+.cursorindexingignore
+
+# GitHub Copilot
+.github/copilot-instructions.md
+.github/instructions/
+.github/prompts/
+.copilot/
+
+# Windsurf / Codeium
+.windsurf/
+.windsurfrules
+.codeium/
+.codeiumignore
+
+# Aider
+.aider*
+.aider.chat.history.md
+.aider.input.history
+.aider.tags.cache*
+
+# Continue, Cline, Roo, Kilo, Zed, Goose, Gemini, Codex, Junie, Trae, Qodo
+.continue/
+.cline/
+.clinerules*
+.roo/
+.roomodes
+.kilocode/
+.zed/
+.goose/
+.gemini/
+GEMINI.md
+.codex/
+.junie/
+.trae/
+.qodo/
+
+# Generic agent conventions
+AGENTS.md
+AGENT.md
+.agent/
+.agents/
+.ai/
+.aiexclude
+.aiignore
+.prompts/
+.llm/
