@@ -1,8 +1,8 @@
-# Z80 Simulator IDE for macOS
+# Z80 Simulator IDE for macOS and Linux
 
 A Z80 assembler, disassembler, debugger and hardware simulator in one native
 macOS application: the workflow of Oshonsoft's Windows-only *Z80 Simulator
-IDE*, with its source and object file formats, on a Mac.
+IDE*, with its source and object file formats, on a Mac or a Linux machine.
 
 The CPU, assembler and simulated machine are Rust; the window is React and
 TypeScript over Monaco, wrapped in Tauri 2. The simulation runs on a thread of
@@ -23,16 +23,39 @@ responsive at every speed.
 
 ## Requirements
 
-- macOS, with the Xcode command line tools
+- macOS, with the Xcode command line tools, or Linux (see below)
 - Rust 1.77 or newer
 - Node 18 or newer
+
+### Linux
+
+Tauri needs WebKitGTK and a few system libraries.
+
+Arch / CachyOS:
+
+```
+sudo pacman -S --needed webkit2gtk-4.1 base-devel curl wget file openssl \
+    appmenu-gtk-module libappindicator-gtk3 librsvg xdotool rust nodejs npm
+```
+
+Debian / Ubuntu:
+
+```
+sudo apt install libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev \
+    libssl-dev libayatana-appindicator3-dev librsvg2-dev
+```
+
+On Wayland compositors such as Hyprland, if the window opens blank or glitchy, try
+`WEBKIT_DISABLE_DMABUF_RENDERER=1 npm run tauri dev`. File dialogs need an XDG desktop
+portal (`xdg-desktop-portal-gtk`, plus the one for your compositor).
 
 ## Building and running
 
 ```sh
 npm install
 npm run tauri dev          # development, with hot reload
-npm run tauri build        # a .app and .dmg in src-tauri/target/release/bundle
+npm run tauri build        # bundles for your platform (.app/.dmg, .deb/.rpm/.AppImage)
+                           # in src-tauri/target/release/bundle
 ```
 
 `npm run build` type-checks the front end and builds it without Tauri;

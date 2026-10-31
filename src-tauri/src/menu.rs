@@ -1,4 +1,4 @@
-//! The native macOS menu bar.
+//! The native menu bar (the macOS menu bar, or the in-window menu on Linux and Windows).
 //!
 //! The structure, the wording and the order come from the original's help
 //! (File, Simulation, Rate, Tools, Options, Help), so an instruction written
@@ -14,7 +14,9 @@
 //! the dispatch, because that is where the dialogs, the panels and the
 //! simulation commands already live.
 
-use tauri::menu::{CheckMenuItemBuilder, Menu, MenuItemBuilder, PredefinedMenuItem, SubmenuBuilder};
+use tauri::menu::{
+    CheckMenuItemBuilder, IsMenuItem, Menu, MenuItemBuilder, PredefinedMenuItem, SubmenuBuilder,
+};
 use tauri::{AppHandle, Emitter, Runtime};
 use z80_system::machine::Options;
 use z80_system::Rate;
@@ -44,6 +46,9 @@ pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
     // Anything whose feature is not built yet.
     let pending = |id: &str, text: &str| MenuItemBuilder::with_id(id, text).enabled(false);
 
+    // The application menu (About, Services, Hide, Quit) is a macOS convention.
+    // On other systems Quit lives in the File menu instead.
+    #[cfg(target_os = "macos")]
     let application = SubmenuBuilder::new(app, "Z80 Simulator IDE")
         .about(None)
         .separator()
@@ -74,8 +79,10 @@ pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
                 .accelerator("CmdOrCtrl+S")
                 .build(app)?,
         )
-        .item(&MenuItemBuilder::with_id("file.save-source-as", "Save Source As…").build(app)?)
-        .build()?;
+        .item(&MenuItemBuilder::with_id("file.save-source-as", "Save Source As…").build(app)?);
+    #[cfg(not(target_os = "macos"))]
+    let file = file.separator().quit();
+    let file = file.build()?;
 
     let edit = SubmenuBuilder::new(app, "Edit")
         .undo()
@@ -222,19 +229,19 @@ pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
         .item(&pending("help.license", "View License Information").build(app)?)
         .build()?;
 
-    Menu::with_items(
-        app,
-        &[
-            &application,
-            &file,
-            &edit,
-            &simulation,
-            &rate,
-            &tools,
-            &options,
-            &help,
-        ],
-    )
+    let mut items: Vec<&dyn IsMenuItem<R>> = Vec::new();
+    #[cfg(target_os = "macos")]
+    items.push(&application);
+    items.extend([
+        &file as &dyn IsMenuItem<R>,
+        &edit,
+        &simulation,
+        &rate,
+        &tools,
+        &options,
+        &help,
+    ]);
+    Menu::with_items(app, &items)
 }
 
 /// Hand a menu choice to the window, which owns the dispatch.
