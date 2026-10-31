@@ -1,0 +1,53 @@
+name: Build (macOS)
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+concurrency:
+  group: build-macos-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: macOS bundles (Apple Silicon)
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ". -> target"
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build the app
+        run: npm run tauri build -- --target aarch64-apple-darwin
+
+      # upload-artifact flattens symlinks and drops the executable bit, which
+      # would leave the downloaded .app unopenable, so ship it as a zip.
+      - name: Zip the .app bundle
+        run: |
+          bundle=$(find . -maxdepth 7 -type d -path '*/release/bundle/macos/*.app' | head -n 1)
+          test -n "$bundle"
+          mkdir -p artifacts
+          ditto -c -k --keepParent "$bundle" "artifacts/$(basename "$bundle" .app)-aarch64.app.zip"
+          find . -path '*/release/bundle/dmg/*.dmg' -exec cp {} artifacts/ \;
+          ls -l artifacts
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: z80ide-macos
+          if-no-files-found: error
+          path: artifacts/*
